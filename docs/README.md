@@ -8,35 +8,39 @@
 
 ## Структура документації
 
-| Файл | Зміст |
+| Файл / Каталог | Зміст |
 |---|---|
 | [0_intro.md](0_intro.md) | Вступ та науковий апарат |
 | [1_analysis.md](1_analysis.md) | Розділ 1. Аналіз предметної області, аналогів та постановка задачі (As-Is, To-Be, NFRs) |
 | [F2_Diploma_Chapter1_Голубчук.docx](F2_Diploma_Chapter1_Голубчук.docx) | Консолідований монолітний документ Розділу 1 (`.docx` / Google Docs) |
-| [2_design.md](2_design.md) | Розділ 2. Проєктування (UML, C4 Model, схеми даних) |
+| [srs.md](srs.md) | Специфікація вимог до програмного забезпечення за стандартом ISO/IEC/IEEE 29148 |
+| [2_design.md](2_design.md) | Розділ 2. Архітектурне проєктування (C4 Model Levels 1–3 у Mermaid.js, трасування до SRS та ADR) |
+| [adr/](adr/) / [ADR-001](adr/0001-choice-of-technology.md) | Реєстр архітектурних рішень (ADR-001: Вибір брокера повідомлень RabbitMQ) |
 | [3_implementation.md](3_implementation.md) | Розділ 3. Реалізація (інтерфейс, тестування, розгортання) |
 | [4_conclusions.md](4_conclusions.md) | Висновки |
 | [proposal.md](proposal.md) | Thesis Proposal |
 
 ## Зведена матриця нефункціональних вимог (NFRs Matrix)
 
-| Категорія NFR | Параметр / Метрика | Цільовий індикатор | Інструмент / Механізм верифікації |
-|---|---|---|---|
-| **Продуктивність (`API Search`)** | Час відгуку пошуку на 95-му перцентилі (`p95 Latency`) | `<= 200 мс` при `300 RPS` | Індекси `PostgreSQL` (`B-Tree`, `GIN`, `pg_trgm`), `k6` |
-| **Продуктивність (`Analytics Cache`)** | Час відгуку аналітики (`Cache Hit p95`) та `Hit Ratio` | `<= 50 мс`, `Hit Ratio >= 85%` | `Redis` (`Cache-Aside`, `TTL = 30 хв`), `Micrometer` / `Prometheus` |
-| **Пропускна здатність конвеєра** | Швидкість обробки подій та `Notification Lag (p95)` | `>= 50 msg/s`, `Lag <= 30 с` | Асинхронні споживачі `RabbitMQ`, інтеграційні тести |
-| **Якість дедуплікації** | Точність консолідації на розміченій вибірці (500 пар) | `Precision >= 0.90`, `Recall >= 0.85`, `F1 >= 0.88` | Двофазне блокування + `Jaro-Winkler` / `Levenshtein`, `JUnit 5` |
-| **Відмовостійкість (`Fault Tolerance`)** | Ізоляція збоїв джерел та гарантія доставки подій | `Failure Rate >= 50%` → `OPEN 60 с`; `3 Retries` → `DLQ` | `Resilience4j` (`Circuit Breaker`, `Retry`), `RabbitMQ DLX`, `Testcontainers` |
-| **Безпека (`Application Security`)** | Автентифікація, захист периметра та аналіз образів | `JWT` (`TTL 15 хв`), `BCrypt >= 12`, `Rate Limit 100 req/min`, `0 HIGH/CRITICAL CVE` | `Spring Security`, `Jsoup Safelist`, `Bucket4j`, сканер `Trivy` |
-| **Надійність та підтримуваність** | Покриття коду тестами та індекс технічного боргу | `Coverage >= 80%`, `SonarQube Rating A` (`Tech Debt <= 5%`) | `JUnit 5`, `Testcontainers`, `JaCoCo`, `SonarQube` у `GitHub Actions` |
+| Індекс SRS | Категорія NFR | Параметр / Метрика | Цільовий індикатор | Інструмент / Механізм верифікації |
+|---|---|---|---|---|
+| [SRS-NFR-PERF-01](srs.md#srs-nfr-perf-01) | **Продуктивність (`API Search`)** | Час відгуку пошуку на 95-му перцентилі (`p95 Latency`) | `<= 200 мс` при `300 RPS` | Індекси `PostgreSQL` (`B-Tree`, `GIN`, `pg_trgm`), `k6` |
+| [SRS-NFR-PERF-02](srs.md#srs-nfr-perf-02) | **Продуктивність (`Analytics Cache`)** | Час відгуку аналітики (`Cache Hit p95`) та `Hit Ratio` | `<= 50 мс`, `Hit Ratio >= 85%` | `Redis` (`Cache-Aside`, `TTL = 30 хв`), `Micrometer` / `Prometheus` |
+| [SRS-NFR-PERF-03](srs.md#srs-nfr-perf-03) | **Пропускна здатність конвеєра** | Швидкість обробки подій та `Notification Lag (p95)` | `>= 50 msg/s`, `Lag <= 30 с` | Асинхронні споживачі `RabbitMQ` ([ADR-001](adr/0001-choice-of-technology.md)), інтеграційні тести |
+| [SRS-NFR-QUAL-01](srs.md#srs-nfr-qual-01) | **Якість дедуплікації** | Точність консолідації на розміченій вибірці (500 пар) | `Precision >= 0.90`, `Recall >= 0.85`, `F1 >= 0.88` | Двофазне блокування + `Jaro-Winkler` / `Levenshtein`, `JUnit 5` |
+| [SRS-NFR-REL-01](srs.md#srs-nfr-rel-01) | **Відмовостійкість джерел** | Ізоляція збоїв зовнішніх ресурсів (`Circuit Breaker`) | `Failure Rate >= 50%` → `OPEN 60 с`; `3 Retries` | `Resilience4j` (`Circuit Breaker`, `Retry`), `WireMock` |
+| [SRS-NFR-REL-02](srs.md#srs-nfr-rel-02) | **Надійність доставки подій** | Гарантія доставки та обробка збійних повідомлень | `At-Least-Once`, `Idempotent Consumer`, `3 Retries` → `DLQ` | `RabbitMQ DLX` ([ADR-001](adr/0001-choice-of-technology.md)), `Testcontainers` |
+| [SRS-NFR-SEC-01](srs.md#srs-nfr-sec-01) | **Безпека автентифікації** | Безстанова автентифікація та авторизація | `JWT` (`TTL 15 хв`), `RBAC`, `BCrypt cost >= 12` | `Spring Security Test`, `SonarQube` |
+| [SRS-NFR-SEC-02](srs.md#srs-nfr-sec-02) | **Захист периметра та образів** | Обмеження частоти запитів, санітизація та CVE-аудит | `Rate Limit 100 req/min`, `Jsoup Safelist`, `0 HIGH/CRITICAL CVE` | `Bucket4j`, `Jsoup`, сканер вразливостей `Trivy` |
+| [SRS-NFR-MAINT-01](srs.md#srs-nfr-maint-01) | **Надійність та підтримуваність** | Покриття коду тестами та індекс технічного боргу | `Coverage >= 80%`, `SonarQube Rating A` (`Tech Debt <= 5%`) | `JUnit 5`, `Testcontainers`, `JaCoCo`, `SonarQube` у `GitHub Actions` |
 
 ## Календарний план
 
 | № з/п | Назва етапу кваліфікаційної роботи | Термін виконання | Статус |
 |---|---|---|---|
 | 1 | Аналіз предметної області та існуючих аналогів, формування вимог | 05.10.2026 – 31.10.2026 | Done |
-| 2 | Обґрунтування технологічного стеку та архітектурних патернів | 01.11.2026 – 22.11.2026 | In Progress |
-| 3 | Проєктування архітектури (C4, UML, схема бази даних) | 23.11.2026 – 20.12.2026 | To Do |
+| 2 | Обґрунтування технологічного стеку та архітектурних патернів | 01.11.2026 – 22.11.2026 | Done |
+| 3 | Проєктування архітектури (C4, UML, схема бази даних) | 23.11.2026 – 20.12.2026 | In Progress |
 | 4 | Алгоритмізація критичних вузлів та розробка базового коду (збір, нормалізація, дедуплікація) | 21.12.2026 – 28.02.2027 | To Do |
 | 5 | Проєктування інтерфейсу та схеми розгортання (Docker, CI/CD, спостережуваність) | 01.03.2027 – 25.03.2027 | To Do |
 | 6 | Інструментальний аудит: тестування, статичний аналіз, безпека, оцінка precision/recall/F1 | 26.03.2027 – 17.04.2027 | To Do |
